@@ -117,6 +117,70 @@ systemctl enable apache2
 systemctl enable loxberry
 systemctl enable mosquitto
 
+# --- Post-install: Apache + LoxBerry config ---
+log "Configuring Apache for LoxBerry..."
+
+# Environment
+echo 'LBHOME=/opt/loxberry' >> /etc/environment
+echo 'PERL5LIB=/opt/loxberry/libs/perllib' >> /etc/environment
+echo 'export LBHOME=/opt/loxberry' >> /etc/apache2/envvars
+echo 'export PERL5LIB=/opt/loxberry/libs/perllib' >> /etc/apache2/envvars
+
+# Create config files
+cp -f /opt/loxberry/config/system/general.json.default /opt/loxberry/config/system/general.json
+htpasswd -bc /opt/loxberry/config/system/htusers.dat loxberry loxberry
+chown -R loxberry:loxberry /opt/loxberry/config
+
+# Apache vhost
+cat > /etc/apache2/sites-available/loxberry.conf << 'VHOST'
+<VirtualHost *:80>
+    ServerName loxberry
+    DocumentRoot /opt/loxberry/webfrontend/html
+
+    SetEnv LBHOME /opt/loxberry
+    SetEnv PERL5LIB /opt/loxberry/libs/perllib
+
+    <Directory /opt/loxberry/webfrontend/html>
+        Options Indexes FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    Alias /admin /opt/loxberry/webfrontend/htmlauth
+    Alias /htmlauth /opt/loxberry/webfrontend/htmlauth
+    <Directory /opt/loxberry/webfrontend/htmlauth>
+        Options Indexes FollowSymLinks ExecCGI
+        AllowOverride All
+        Require all granted
+        AddHandler cgi-script .cgi .pl
+        SetEnv PERL5LIB /opt/loxberry/libs/perllib
+        SetEnv LBHOME /opt/loxberry
+    </Directory>
+
+    ScriptAlias /cgi-bin /opt/loxberry/webfrontend/cgi
+    <Directory /opt/loxberry/webfrontend/cgi>
+        Options ExecCGI
+        AllowOverride All
+        Require all granted
+        SetEnv PERL5LIB /opt/loxberry/libs/perllib
+        SetEnv LBHOME /opt/loxberry
+    </Directory>
+
+    ErrorLog ${APACHE_LOG_DIR}/loxberry_error.log
+    CustomLog ${APACHE_LOG_DIR}/loxberry_access.log combined
+</VirtualHost>
+VHOST
+
+# Apache modules and sites
+a2dissite 000-default
+a2ensite loxberry
+a2enmod cgi rewrite
+
+# Auto-start services
+systemctl enable apache2
+systemctl enable loxberry
+systemctl enable mosquitto 2>/dev/null || true
+
 # --- 9. Cleanup ---
 log "Cleaning up..."
 apt-get clean
