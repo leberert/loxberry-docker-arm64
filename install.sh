@@ -112,6 +112,11 @@ if [ -e /usr/bin/systemctl.distrib ]; then
     dpkg-divert --local --rename --remove /usr/bin/systemctl
 fi
 
+# Enable services so they start with systemd
+systemctl enable apache2
+systemctl enable loxberry
+systemctl enable mosquitto
+
 # --- 9. Cleanup ---
 log "Cleaning up..."
 apt-get clean
