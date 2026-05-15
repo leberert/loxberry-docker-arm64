@@ -11,6 +11,7 @@ LABEL org.opencontainers.image.title="LoxBerry ARM64" \
       org.opencontainers.image.licenses="Apache-2.0"
 
 ENV DEBIAN_FRONTEND=noninteractive \
+    TERM=xterm \
     LC_ALL=C.UTF-8 \
     LANG=C.UTF-8 \
     container=docker
